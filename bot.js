@@ -4,12 +4,12 @@
  * Petroleum Engineering Telegram Bot
  * 
  * A bilingual (Arabic/English) Telegram bot specialized in petroleum engineering.
- * Uses OpenAI API for intelligent responses.
+ * Uses Groq API (OpenAI compatible) for intelligent responses.
  * 
  * Environment variables required:
  * - TELEGRAM_BOT_TOKEN: Your Telegram bot token
- * - OPENAI_API_KEY: Your OpenAI API key
- * - OPENAI_API_BASE: OpenAI API base URL (optional, defaults to https://api.openai.com/v1)
+ * - OPENAI_API_KEY: Your Groq API key
+ * - OPENAI_API_BASE: API base URL (defaults to https://api.groq.com/openai/v1)
  */
 
 const axios = require('axios');
@@ -20,7 +20,8 @@ const path = require('path');
 const TELEGRAM_API_BASE = 'https://api.telegram.org';
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_API_BASE = process.env.OPENAI_API_BASE || 'https://api.openai.com/v1';
+const OPENAI_API_BASE = process.env.OPENAI_API_BASE || 'https://api.groq.com/openai/v1';
+const LLM_MODEL = process.env.LLM_MODEL || 'llama-3.3-70b-versatile';
 const LLM_TIMEOUT_MS = 30000; // 30 seconds
 const CONVERSATION_HISTORY_FILE = 'conversation_history.json';
 
@@ -37,7 +38,8 @@ if (!OPENAI_API_KEY) {
 
 console.log('✅ Bot initialized with:');
 console.log(`   - Telegram Bot Token: ${BOT_TOKEN.substring(0, 10)}...`);
-console.log(`   - OpenAI API Base: ${OPENAI_API_BASE}`);
+console.log(`   - API Base: ${OPENAI_API_BASE}`);
+console.log(`   - Model: ${LLM_MODEL}`);
 
 // In-memory conversation history (persisted to file)
 let conversationHistory = {};
@@ -132,9 +134,9 @@ async function sendTelegramMessage(chatId, text) {
 }
 
 /**
- * Get response from OpenAI API
+ * Get response from API
  */
-async function getOpenAIResponse(messages, language) {
+async function getLLMResponse(messages, language) {
   try {
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('LLM request timeout')), LLM_TIMEOUT_MS)
@@ -143,7 +145,7 @@ async function getOpenAIResponse(messages, language) {
     const requestPromise = axios.post(
       `${OPENAI_API_BASE}/chat/completions`,
       {
-        model: 'gpt-3.5-turbo',
+        model: LLM_MODEL,
         messages: [
           {
             role: 'system',
@@ -165,7 +167,7 @@ async function getOpenAIResponse(messages, language) {
     const response = await Promise.race([requestPromise, timeoutPromise]);
     return response.data.choices[0].message.content;
   } catch (error) {
-    console.error('❌ OpenAI API error:', error.message);
+    console.error('❌ LLM API error:', error.response ? JSON.stringify(error.response.data) : error.message);
     throw error;
   }
 }
@@ -232,9 +234,9 @@ async function processUserMessage(update) {
     // Get conversation history
     const history = getUserHistory(userId, 20);
 
-    // Get response from OpenAI
-    console.log('   Calling OpenAI API...');
-    const botResponse = await getOpenAIResponse(
+    // Get response from LLM
+    console.log('   Calling LLM API...');
+    const botResponse = await getLLMResponse(
       [...history, { role: 'user', content: userText }],
       language
     );
