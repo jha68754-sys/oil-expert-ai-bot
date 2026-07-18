@@ -70,7 +70,7 @@ async function getLLMResponse(messages, language) {
   const response = await axios.post(`${OPENAI_API_BASE}/chat/completions`, {
     model: LLM_MODEL,
     messages: [{ role: 'system', content: getExpertSystemPrompt(language) }, ...messages],
-    temperature: 0.2,
+    temperature: 0.2, stream: false,
   }, {
     headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
     timeout: LLM_TIMEOUT_MS
@@ -97,7 +97,7 @@ async function processUserMessage(update) {
 
     await sendTelegramMessage(chatId, botResponse);
   } catch (error) {
-    console.error(`❌ Process Error:`, error.message);
+    console.error(`❌ Process Error:`, error.response ? JSON.stringify(error.response.data) : error.message);
     await sendTelegramMessage(chatId, "عذراً، حدث خطأ تقني. يرجى المحاولة لاحقاً.");
   }
 }
