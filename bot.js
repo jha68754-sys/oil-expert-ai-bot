@@ -1,15 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * Petroleum Engineering Telegram Bot
+ * Petroleum Engineering Expert System Bot
  * 
  * A bilingual (Arabic/English) Telegram bot specialized in petroleum engineering.
- * Uses Groq API (OpenAI compatible) for intelligent responses.
- * 
- * Environment variables required:
- * - TELEGRAM_BOT_TOKEN: Your Telegram bot token
- * - OPENAI_API_KEY: Your Groq API key
- * - OPENAI_API_BASE: API base URL (defaults to https://api.groq.com/openai/v1)
+ * Uses Groq API (OpenAI compatible) for expert-level intelligent responses.
  */
 
 const axios = require('axios');
@@ -22,7 +17,7 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_API_BASE = process.env.OPENAI_API_BASE || 'https://api.groq.com/openai/v1';
 const LLM_MODEL = process.env.LLM_MODEL || 'llama-3.3-70b-versatile';
-const LLM_TIMEOUT_MS = 30000; // 30 seconds
+const LLM_TIMEOUT_MS = 60000; // Increased to 60 seconds for complex reasoning
 const CONVERSATION_HISTORY_FILE = 'conversation_history.json';
 
 // Validate environment variables
@@ -36,7 +31,7 @@ if (!OPENAI_API_KEY) {
   process.exit(1);
 }
 
-console.log('✅ Bot initialized with:');
+console.log('✅ Expert Bot initialized with:');
 console.log(`   - Telegram Bot Token: ${BOT_TOKEN.substring(0, 10)}...`);
 console.log(`   - API Base: ${OPENAI_API_BASE}`);
 console.log(`   - Model: ${LLM_MODEL}`);
@@ -78,44 +73,49 @@ function detectLanguage(text) {
   const arabicRegex = /[\u0600-\u06FF]/g;
   const arabicChars = text.match(arabicRegex) || [];
   const arabicRatio = arabicChars.length / text.length;
-  return arabicRatio > 0.3 ? 'ar' : 'en';
+  return arabicRatio > 0.2 ? 'ar' : 'en';
 }
 
 /**
- * Get the petroleum engineering system prompt
+ * Get the expert petroleum engineering system prompt
  */
-function getPetroleumSystemPrompt(language) {
+function getExpertSystemPrompt(language) {
+  const basePrompt = `You are a highly experienced Senior Petroleum Engineer, technical consultant, and industry expert. 
+Your objective is to act as a Petroleum Engineering Expert System.
+Every response must be scientifically accurate, technically correct, logically consistent, and based on accepted engineering principles.
+
+CORE AREAS OF EXPERTISE:
+- Reservoir Engineering, PVT Analysis, Simulation, Well Testing.
+- Production Engineering, Artificial Lift, Flow Assurance.
+- Drilling Engineering, Mud Engineering, Cementing, MPD.
+- Well Completion, Workover, Well Intervention.
+- Petrophysics, Well Logging, Formation Evaluation.
+- Geomechanics, Rock Mechanics.
+- Pipeline Engineering, Surface Facilities.
+- EOR, Unconventional Resources, CCS.
+- Petroleum Economics, HSE, Digital Oilfield, AI in Petroleum.
+
+SCIENTIFIC QUALITY STANDARDS:
+- Be technically rigorous and scientifically correct.
+- Replace generic explanations with professional engineering insights.
+- For equations: define every variable, include SI/Field units, and state assumptions.
+- Explain the physical interpretation and operational significance.
+- ZERO HALLUCINATION POLICY: If information is missing, clearly state the uncertainty and ask for data. Never guess or fabricate conclusions.
+
+ENGINEERING BEHAVIOR:
+- Reason like an engineer before answering.
+- Explain concepts, scientific basis, operational significance, and best practices.
+- Provide practical field applications and common engineering mistakes.`;
+
   if (language === 'ar') {
-    return `أنت خبير متخصص في الهندسة النفطية (Petroleum Engineering) بخبرة عميقة في جميع جوانب الصناعة النفطية. تتمتع بمعرفة شاملة في المجالات التالية:
+    return `${basePrompt}
 
-1. **هندسة الحفر (Drilling Engineering)**: تصميم الآبار، اختيار السوائل، معدات الحفر، مشاكل الحفر الشائعة، والسلامة
-2. **هندسة الإنتاج (Production Engineering)**: تحسين الإنتاج، معدات الرفع، التحكم بالضغط، الفصل والمعالجة
-3. **هندسة المكامن (Reservoir Engineering)**: خصائص المكامن، المحاكاة، التنبؤ بالإنتاج، استرجاع النفط المحسّن
-4. **إكمال الآبار (Well Completion)**: تصميم الإكمال، الأنابيب، المصافي، الحشوات
-5. **استرجاع النفط المحسّن (Enhanced Oil Recovery - EOR)**: الحقن بالماء، الحقن بالغاز، الطرق الحرارية
-6. **الجيولوجيا النفطية (Petroleum Geology)**: تكوين النفط، الهجرة، التراكيب الجيولوجية
-7. **اختبار الآبار (Well Testing)**: تحليل الضغط، معاملات الخزان، التشخيص
-8. **هندسة خطوط الأنابيب (Pipeline Engineering)**: النقل، الضخ، السلامة
-9. **الصحة والسلامة والبيئة (HSE)**: معايير السلامة، الحماية البيئية، الامتثال
-10. **الحسابات والصيغ النفطية**: الحسابات الهندسية، التحويلات، المعادلات
-
-أجب على أسئلة المستخدم بشكل دقيق وعملي. إذا طلب حساب، قدم الخطوات والنتيجة النهائية. كن متحمساً وودوداً في شرح المفاهيم المعقدة. إذا لم تكن متأكداً من شيء، قل ذلك بوضوح.`;
+يجب أن تكون إجابتك باللغة العربية، مع الحفاظ على المصطلحات التقنية الإنجليزية بين قوسين عند الضرورة لضمان الدقة الهندسية. كن دقيقاً جداً في الحسابات والتعاريف العلمية.`;
   }
 
-  return `You are an expert specialist in Petroleum Engineering with deep expertise across all aspects of the oil and gas industry. You have comprehensive knowledge in the following domains:
+  return `${basePrompt}
 
-1. **Drilling Engineering**: Well design, fluid selection, drilling equipment, common drilling problems, and safety
-2. **Production Engineering**: Production optimization, lifting equipment, pressure control, separation and processing
-3. **Reservoir Engineering**: Reservoir properties, simulation, production forecasting, enhanced oil recovery
-4. **Well Completion**: Completion design, tubing, screens, packers
-5. **Enhanced Oil Recovery (EOR)**: Water injection, gas injection, thermal methods
-6. **Petroleum Geology**: Oil formation, migration, geological structures
-7. **Well Testing**: Pressure analysis, reservoir parameters, diagnosis
-8. **Pipeline Engineering**: Transportation, pumping, safety
-9. **Health, Safety, and Environment (HSE)**: Safety standards, environmental protection, compliance
-10. **Petroleum Calculations and Formulas**: Engineering calculations, conversions, equations
-
-Answer user questions with precision and practical insights. If a calculation is requested, provide the steps and final result. Be enthusiastic and friendly in explaining complex concepts. If you're unsure about something, say so clearly.`;
+Respond in English. Be precise, professional, and use standard industry terminology.`;
 }
 
 /**
@@ -123,11 +123,15 @@ Answer user questions with precision and practical insights. If a calculation is
  */
 async function sendTelegramMessage(chatId, text) {
   try {
-    await axios.post(`${TELEGRAM_API_BASE}/bot${BOT_TOKEN}/sendMessage`, {
-      chat_id: chatId,
-      text: text,
-      parse_mode: 'Markdown',
-    });
+    // Split long messages if necessary (Telegram limit is 4096)
+    const chunks = text.match(/[\s\S]{1,4000}/g) || [];
+    for (const chunk of chunks) {
+      await axios.post(`${TELEGRAM_API_BASE}/bot${BOT_TOKEN}/sendMessage`, {
+        chat_id: chatId,
+        text: chunk,
+        parse_mode: 'Markdown',
+      });
+    }
   } catch (error) {
     console.error(`❌ Failed to send message to chat ${chatId}:`, error.message);
   }
@@ -149,12 +153,12 @@ async function getLLMResponse(messages, language) {
         messages: [
           {
             role: 'system',
-            content: getPetroleumSystemPrompt(language),
+            content: getExpertSystemPrompt(language),
           },
           ...messages,
         ],
-        max_tokens: 1000,
-        temperature: 0.7,
+        max_tokens: 2000,
+        temperature: 0.3, // Lower temperature for higher technical precision
       },
       {
         headers: {
@@ -167,8 +171,9 @@ async function getLLMResponse(messages, language) {
     const response = await Promise.race([requestPromise, timeoutPromise]);
     return response.data.choices[0].message.content;
   } catch (error) {
-    console.error('❌ LLM API error:', error.response ? JSON.stringify(error.response.data) : error.message);
-    throw error;
+    const errorDetail = error.response ? JSON.stringify(error.response.data) : error.message;
+    console.error('❌ LLM API error:', errorDetail);
+    throw new Error(`LLM Error: ${errorDetail}`);
   }
 }
 
@@ -202,9 +207,9 @@ function saveMessage(userId, sender, content, language) {
     timestamp: new Date().toISOString(),
   });
 
-  // Keep only last 100 messages per user
-  if (conversationHistory[userId].length > 100) {
-    conversationHistory[userId] = conversationHistory[userId].slice(-100);
+  // Keep only last 50 messages per user to save space
+  if (conversationHistory[userId].length > 50) {
+    conversationHistory[userId] = conversationHistory[userId].slice(-50);
   }
 
   saveConversationHistory();
@@ -226,16 +231,15 @@ async function processUserMessage(update) {
   try {
     // Detect language
     const language = detectLanguage(userText);
-    console.log(`   Language detected: ${language === 'ar' ? 'Arabic' : 'English'}`);
-
+    
     // Save user message
     saveMessage(userId, 'user', userText, language);
 
     // Get conversation history
-    const history = getUserHistory(userId, 20);
+    const history = getUserHistory(userId, 10);
 
     // Get response from LLM
-    console.log('   Calling LLM API...');
+    console.log('   Calling LLM API (Groq Expert Mode)...');
     const botResponse = await getLLMResponse(
       [...history, { role: 'user', content: userText }],
       language
@@ -250,8 +254,10 @@ async function processUserMessage(update) {
   } catch (error) {
     console.error(`❌ Error processing message from user ${userId}:`, error.message);
 
-    // Send error message in Arabic
-    const errorMessage = 'عذراً، حدث خطأ في معالجة طلبك. يرجى المحاولة لاحقاً.';
+    // Send error message
+    const errorMessage = language === 'ar' 
+      ? 'عذراً، حدث خطأ تقني أثناء معالجة طلبك. يرجى المحاولة لاحقاً.' 
+      : 'Sorry, a technical error occurred while processing your request. Please try again later.';
     await sendTelegramMessage(chatId, errorMessage);
   }
 }
@@ -266,7 +272,7 @@ async function getUpdates(offset) {
       {
         params: {
           offset,
-          timeout: 30,
+          timeout: 20,
           allowed_updates: ['message'],
         },
       }
@@ -284,9 +290,9 @@ async function getUpdates(offset) {
  */
 async function startPolling() {
   let offset = 0;
-  const pollInterval = 1000; // 1 second between polls
+  const pollInterval = 1000;
 
-  console.log('\n🚀 Starting Telegram bot polling...\n');
+  console.log('\n🚀 Starting Expert Petroleum Bot polling...\n');
 
   while (true) {
     try {
@@ -297,11 +303,9 @@ async function startPolling() {
         offset = update.update_id + 1;
       }
 
-      // Small delay to avoid hammering the API
       await new Promise((resolve) => setTimeout(resolve, pollInterval));
     } catch (error) {
       console.error('❌ Polling error:', error.message);
-      // Wait before retrying
       await new Promise((resolve) => setTimeout(resolve, 5000));
     }
   }
@@ -317,14 +321,11 @@ startPolling().catch((error) => {
 });
 
 // Graceful shutdown
-process.on('SIGINT', () => {
+const shutdown = () => {
   console.log('\n\n👋 Shutting down gracefully...');
   saveConversationHistory();
   process.exit(0);
-});
+};
 
-process.on('SIGTERM', () => {
-  console.log('\n\n👋 Shutting down gracefully...');
-  saveConversationHistory();
-  process.exit(0);
-});
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
