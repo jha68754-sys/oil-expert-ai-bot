@@ -28,9 +28,15 @@ async function getLLMResponse(messages, language) {
     ? "أنت خبير في الهندسة النفطية. أجب بدقة علمية وباللغة العربية مع ذكر المصطلحات الإنجليزية." 
     : "You are a Senior Petroleum Engineering Expert. Provide technically accurate and professional responses.";
   
+  // Clean messages to ensure they only contain 'role' and 'content'
+  const cleanedMessages = messages.map(m => ({
+    role: m.role === 'assistant' ? 'assistant' : 'user',
+    content: String(m.content)
+  }));
+
   const response = await axios.post(`${OPENAI_API_BASE}/chat/completions`, {
     model: LLM_MODEL,
-    messages: [{ role: 'system', content: systemPrompt }, ...messages],
+    messages: [{ role: 'system', content: systemPrompt }, ...cleanedMessages],
     temperature: 0.3,
   }, {
     headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
@@ -46,12 +52,12 @@ async function processUserMessage(update) {
   const language = /[\u0600-\u06FF]/.test(userText) ? 'ar' : 'en';
 
   try {
-    const history = (conversationHistory[chatId] || []).slice(-4).map(m => ({ role: m.role, content: m.content }));
+    const history = (conversationHistory[chatId] || []).slice(-6);
     const botResponse = await getLLMResponse([...history, { role: 'user', content: userText }], language);
     
     if (!conversationHistory[chatId]) conversationHistory[chatId] = [];
     conversationHistory[chatId].push({ role: 'user', content: userText }, { role: 'assistant', content: botResponse });
-    if (conversationHistory[chatId].length > 20) conversationHistory[chatId] = conversationHistory[chatId].slice(-20);
+    if (conversationHistory[chatId].length > 10) conversationHistory[chatId] = conversationHistory[chatId].slice(-10);
     fs.writeFileSync(CONVERSATION_HISTORY_FILE, JSON.stringify(conversationHistory, null, 2));
 
     await sendTelegramMessage(chatId, botResponse);
